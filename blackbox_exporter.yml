@@ -1,0 +1,66 @@
+---
+- name: Instalar Blackbox Exporter no RHEL 9
+  hosts: ipamonit.aroque.com.br
+  become: true
+  tasks:
+    - name: Instalar pacotes necessários
+      dnf:
+        name:
+          - tar
+          - wget
+        state: present
+
+    - name: Criar diretório para o Blackbox Exporter
+      file:
+        path: /opt/blackbox_exporter
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Criar diretório de configuração do Blackbox Exporter em /etc/blackbox_exporter
+      file:
+        path: /etc/blackbox_exporter
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Baixar Blackbox Exporter
+      get_url:
+        url: "https://github.com/prometheus/blackbox_exporter/releases/download/v0.25.0/blackbox_exporter-0.25.0.linux-amd64.tar.gz"
+        dest: "/tmp/blackbox_exporter.tar.gz"
+
+    - name: Extrair Blackbox Exporter no diretório de destino
+      unarchive:
+        src: "/tmp/blackbox_exporter.tar.gz"
+        dest: /opt/blackbox_exporter
+        remote_src: yes
+        extra_opts: ['--strip-components=1']
+        creates: "/opt/blackbox_exporter/blackbox_exporter"
+
+    - name: Copiar arquivo de configuração do Blackbox Exporter
+      copy:
+        src: blackbox.yml
+        dest: /etc/blackbox_exporter/config.yml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copiar o arquivo de serviço do systemd para o Blackbox Exporter
+      copy:
+        src: blackbox_exporter.service
+        dest: /etc/systemd/system/blackbox_exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Recarregar daemon do systemd para ler novos arquivos de serviço
+      systemd:
+        daemon_reload: yes
+
+    - name: Habilitar e iniciar o serviço Blackbox Exporter
+      systemd:
+        name: blackbox_exporter
+        enabled: yes
+        state: started

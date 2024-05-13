@@ -1,0 +1,66 @@
+---
+- name: Instalar Alertmanager no RHEL 9
+  hosts: ipamonit.aroque.com.br
+  become: true
+  tasks:
+    - name: Instalar pacotes necessários
+      dnf:
+        name:
+          - tar
+          - wget
+        state: present
+
+    - name: Criar diretório para o Alertmanager
+      file:
+        path: /opt/alertmanager
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Criar diretório de configuração do Alertmanager em /etc/alertmanager
+      file:
+        path: /etc/alertmanager
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Baixar Alertmanager
+      get_url:
+        url: "https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz"
+        dest: "/tmp/alertmanager.tar.gz"
+
+    - name: Extrair Alertmanager no diretório de destino
+      unarchive:
+        src: "/tmp/alertmanager.tar.gz"
+        dest: /opt/alertmanager
+        remote_src: yes
+        extra_opts: ['--strip-components=1']
+        creates: "/opt/alertmanager/alertmanager"
+
+    - name: Copiar arquivo de configuração do Alertmanager
+      copy:
+        src: alertmanager.yml
+        dest: /etc/alertmanager/alertmanager.yml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copiar o arquivo de serviço do systemd para o Alertmanager
+      copy:
+        src: alertmanager.service
+        dest: /etc/systemd/system/alertmanager.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Recarregar daemon do systemd para ler novos arquivos de serviço
+      systemd:
+        daemon_reload: yes
+
+    - name: Habilitar e iniciar o serviço Alertmanager
+      systemd:
+        name: alertmanager
+        enabled: yes
+        state: started

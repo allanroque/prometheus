@@ -1,0 +1,66 @@
+---
+- name: Instalar Prometheus no RHEL 9
+  hosts: ipamonit.aroque.com.br
+  become: true
+  tasks:
+    - name: Instalar pacotes necessários
+      dnf:
+        name:
+          - tar
+          - wget
+        state: present
+
+    - name: Criar diretório para o Prometheus
+      file:
+        path: /opt/prometheus
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Criar diretório de configuração do Prometheus em /etc/prometheus
+      file:
+        path: /etc/prometheus
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Baixar Prometheus
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz"
+        dest: "/tmp/prometheus.tar.gz"
+
+    - name: Extrair Prometheus no diretório de destino
+      unarchive:
+        src: "/tmp/prometheus.tar.gz"
+        dest: /opt/prometheus
+        remote_src: yes
+        extra_opts: ['--strip-components=1']
+        creates: "/opt/prometheus/prometheus"
+
+    - name: Copiar arquivo de configuração do Prometheus
+      ansible.builtin.template:
+        src: prometheus.j2
+        dest: /etc/prometheus/prometheus.yml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copiar o arquivo de serviço do systemd para o Prometheus
+      copy:
+        src: prometheus.service
+        dest: /etc/systemd/system/prometheus.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Recarregar daemon do systemd para ler novos arquivos de serviço
+      systemd:
+        daemon_reload: yes
+
+    - name: Habilitar e iniciar o serviço Prometheus
+      systemd:
+        name: prometheus
+        enabled: yes
+        state: started

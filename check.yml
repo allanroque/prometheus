@@ -1,0 +1,22 @@
+---
+- name: Verificar status dos serviços no RHEL 9
+  hosts: all
+  become: true
+  tasks:
+    - name: Coletar fatos sobre todos os serviços ativos
+      service_facts:
+
+    - name: Exibir status do serviço Prometheus
+      debug:
+        msg: "Status do serviço Prometheus: {{ ansible_facts.services['prometheus.service'].state }}"
+      when: "'prometheus.service' in ansible_facts.services"
+
+    - name: Exibir status do serviço Alertmanager
+      debug:
+        msg: "Status do serviço Alertmanager: {{ ansible_facts.services['alertmanager.service'].state }}"
+      when: "'alertmanager.service' in ansible_facts.services"
+
+    - name: Exibir status do serviço Blackbox Exporter
+      debug:
+        msg: "Status do serviço Blackbox Exporter: {{ ansible_facts.services['blackbox_exporter.service'].state }}"
+      when: "'blackbox_exporter.service' in ansible_facts.services"
