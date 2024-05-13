@@ -1,6 +1,6 @@
 ---
 - name: Verificar status dos serviços no RHEL 9
-  hosts: all
+  hosts: ipamonit.aroque.com.br
   become: true
   tasks:
     - name: Coletar fatos sobre todos os serviços ativos
